@@ -1,6 +1,9 @@
 [package]
 name = "CCCCCLLLLLIIIII"
 version = "0.1.0"
+authors = ["ZySvC"]
+license = "GPL-3.0"
+repository = "https://github.com/zysv/CCCCCLLLLLIIIII"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
