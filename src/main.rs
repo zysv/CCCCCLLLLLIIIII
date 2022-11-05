@@ -5,6 +5,7 @@ use std::io::{Stdin, BufRead};
 use colored::*;
 use clap::{Command, Arg};
 use winconsole::console;
+use std::path::Path;
 // use terminal::{Action, Clear};
 
 // https://stackoverflow.com/questions/39351453/is-there-a-standard-way-of-discarding-input-in-rust
@@ -140,6 +141,10 @@ async fn main() {
     output_file.green(), rep_print(' ', 45 - output_file.chars().count()),
     threads.green(), rep_print(' ', 45 - threads.chars().count()),
     );
+
+    if Path::new(input_file).is_file() {
+        println!("it is file");
+    };
     
     // print configuration
     println!("{}\n", cfgtxt);
