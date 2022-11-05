@@ -34,6 +34,7 @@ struct AppConfig {
 
 #[tokio::main]
 async fn main() {
+    // debug logger
     #[cfg(debug_assertions)]
     {
         simple_logger::SimpleLogger::new()
@@ -43,6 +44,8 @@ async fn main() {
             .unwrap();
         ::log::set_max_level(log::LevelFilter::Debug);
     }
+    
+    // welcome screen
     let cli_txt = format!("
     _________ _________ _________  ___     ___     ___     ___ ___ ___
     \\_   ___ \\\\_   ___ \\\\_   ___ \\|   |   |   |   |   |   |   |   |   |  -  {}{}{}
@@ -52,6 +55,7 @@ async fn main() {
             \\/        \\/        \\/       \\/      \\/      \\/            
     ", "github".bright_black(), "/".white(), "zysv".bright_blue());
     
+    // print welcome screen
     println!("{}", cli_txt.bright_red());
 
     let matches = Command::new("cccccllllliiiii")
@@ -94,15 +98,6 @@ async fn main() {
                 .help("Number of threads to spawn")
                 .action(ArgAction::Set)
                 .num_args(1)
-        )
-        .arg(
-            Arg::new("proxy_file")
-                .short('p')
-                .long("proxies")
-                .value_name("proxy_file")
-                .help("File containing a line-separated list of proxies")
-                .action(ArgAction::Set)
-                .num_args(1),
         )
         // .arg(
         //     Arg::new("verbose")
