@@ -4,6 +4,7 @@ use std::io;
 use std::io::{Stdin, BufRead};
 use colored::*;
 use clap::{Command, Arg};
+use winconsole::console;
 // use terminal::{Action, Clear};
 
 // https://stackoverflow.com/questions/39351453/is-there-a-standard-way-of-discarding-input-in-rust
@@ -55,9 +56,13 @@ async fn main() {
         ::log::set_max_level(log::LevelFilter::Debug);
     }
     
+    let description = "CCCCCLLLLLIIIII - A Commandline Application";
+
     // clear terminal ; not recommended as of rn
     // let terminal = terminal::stdout();
     // terminal.act(Action::ClearTerminal(Clear::All)).expect("couldn't clear terminal");
+
+    console::set_title(description).unwrap();
 
     // welcome screen
     let cli_txt = format!("
@@ -75,7 +80,7 @@ async fn main() {
     let matches = Command::new("cccccllllliiiii")
         .version("0.1.9")
         .author("by ZySvC")
-        .about("helllllllllooooooooooooooo")
+        .about(description)
         .arg(
             Arg::new("target_url")
                 .short('t')
