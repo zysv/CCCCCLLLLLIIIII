@@ -78,7 +78,7 @@ async fn main() {
     println!("{}", cli_txt.bright_red());
 
     let matches = Command::new("cccccllllliiiii")
-        .version("0.1.9")
+        .version("0.2.1")
         .author("by ZySvC")
         .about(description)
         .arg(
