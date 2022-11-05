@@ -2,6 +2,7 @@
 
 use std::io;
 use std::io::{Stdin, BufRead};
+use clap::error::ErrorFormatter;
 use colored::*;
 use clap::{Command, Arg};
 use winconsole::console;
@@ -123,11 +124,22 @@ async fn main() {
 
     // TODO: Argument validation (colorful?)
     
+    
+
+
     // validate required arguments for their existence, if not panic
-    let target_url = matches.get_one::<String>("target_url").expect("failed to get target");
-    let input_file = matches.get_one::<String>("input_file").expect("failed to get input_file");
-    let output_file = matches.get_one::<String>("output_file").expect("failed to get output_file");
-    let threads = matches.get_one::<String>("threads").expect("failed to get threads");
+    let target_url: ColoredString = matches.get_one::<String>("target_url").expect("failed to get target").white();
+    let mut input_file: ColoredString = matches.get_one::<String>("input_file").expect("failed to get input_file").white();
+    let output_file: ColoredString = matches.get_one::<String>("output_file").expect("failed to get output_file").white();
+    let threads: ColoredString = matches.get_one::<String>("threads").expect("failed to get threads").white();
+    
+    if Path::new(&input_file.to_string()).is_file() {
+        log::error!("input_file argument is not a valid file");
+        input_file = input_file.red();
+    } else{
+        log::info!("input_file argument is valid");
+        input_file = input_file.green();
+    }
 
     let cfgtxt = format!("
   .-- [ Loaded Configuration ] ------------------------------------.
@@ -136,15 +148,13 @@ async fn main() {
   |  Output File    -  {}{}|
   |  Threads        -  {}{}|
   '----------------------------------------------------------------'",
-    target_url.green(), rep_print(' ', 45 - target_url.chars().count()),
-    input_file.green(), rep_print(' ', 45 - input_file.chars().count()),
-    output_file.green(), rep_print(' ', 45 - output_file.chars().count()),
-    threads.green(), rep_print(' ', 45 - threads.chars().count()),
+    target_url, rep_print(' ', 45 - target_url.chars().count()),
+    input_file, rep_print(' ', 45 - input_file.chars().count()),
+    output_file, rep_print(' ', 45 - output_file.chars().count()),
+    threads, rep_print(' ', 45 - threads.chars().count()),
     );
 
-    if Path::new(input_file).is_file() {
-        println!("it is file");
-    };
+    
     
     // print configuration
     println!("{}\n", cfgtxt);
