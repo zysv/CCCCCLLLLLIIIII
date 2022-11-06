@@ -2,7 +2,7 @@
 
 use std::io;
 use std::io::{Stdin, BufRead};
-use clap::error::ErrorFormatter;
+// use clap::error::ErrorFormatter;
 use colored::*;
 use clap::{Command, Arg};
 use winconsole::console;
@@ -133,13 +133,14 @@ async fn main() {
     let output_file: ColoredString = matches.get_one::<String>("output_file").expect("failed to get output_file").white();
     let threads: ColoredString = matches.get_one::<String>("threads").expect("failed to get threads").white();
     
-    if Path::new(&input_file.to_string()).is_file() {
-        log::error!("input_file argument is not a valid file");
-        input_file = input_file.red();
-    } else{
-        log::info!("input_file argument is valid");
-        input_file = input_file.green();
-    }
+    // BROKEN
+    // if Path::new(&input_file.to_string()).is_file() {
+    //     log::info!("{}", format!("input_file: '{}' argument is valid", &input_file.to_string()));
+    //     // input_file = input_file.green();
+    // } else {
+    //     log::error!("{}", format!("input_file: '{}' argument is invalid", &input_file.to_string()));
+    //     // input_file = input_file.red();
+    // }
 
     let cfgtxt = format!("
   .-- [ Loaded Configuration ] ------------------------------------.
