@@ -26,6 +26,7 @@ impl DiscardUntil for Stdin {
     }
 }
 
+// will repeatedly add a character until the requiered length is reached
 fn rep_print(input: char, length: usize) -> String {
     let mut cnstrcd = String::new();
     for _ in 1..length {
@@ -34,16 +35,27 @@ fn rep_print(input: char, length: usize) -> String {
     }
     return cnstrcd;
 }
-// struct AppConfig {
-//     pub target_url: Box<str>,
-//     pub input_file: Box<str>,
-//     pub output_file: Box<str>,
-//     pub threads: usize,
-//     pub proxies_file: Box<str>,
-//     pub log_file: Box<str>,
-//     pub delay: u64,
-//     pub timeout: u64,
-// }
+
+// to avoid: thread 'main' panicked at 'attempt to subtract with overflow'
+fn display(input: String) -> String {
+    let mut cnstrcd = String::new();
+
+    for i in 0..25 {
+        if input.chars().nth(i) != None {
+            cnstrcd.push(input.chars().nth(i).unwrap());
+            // cnstrcd.push(input.chars().nth(i).unwrap_or_else(&|| ' '));
+        }
+    }
+
+    if cnstrcd.chars().count() == 25 && input.chars().count() != 25 {
+        cnstrcd.push_str("...");
+        // TOFIX
+        // for i in 0..3 { 
+        //     cnstrcd.push(input.chars().nth(input.chars().count() - i).unwrap())
+        // }
+    }
+    return cnstrcd;
+}
 
 #[tokio::main]
 async fn main() {
@@ -104,7 +116,7 @@ async fn main() {
                 .long("output")
                 .value_name("output_file")
                 .help("File to write all valid parts of the list to")
-                .default_value("valid_proxies.txt")
+                .default_value("valid_{date}.txt")
         )
         .arg(
             Arg::new("threads")
@@ -112,6 +124,7 @@ async fn main() {
                 .long("threads")
                 .value_name("threads")
                 .help("Number of threads to spawn")
+                .default_value("100")
         )
         // .arg(
         //     Arg::new("verbose")
@@ -122,25 +135,58 @@ async fn main() {
         // )
         .get_matches();
 
-    // TODO: Argument validation (colorful?)
-    
-    
-
+    // TODO: more efficient rewrite?
 
     // validate required arguments for their existence, if not panic
-    let target_url: ColoredString = matches.get_one::<String>("target_url").expect("failed to get target").white();
-    let mut input_file: ColoredString = matches.get_one::<String>("input_file").expect("failed to get input_file").white();
-    let output_file: ColoredString = matches.get_one::<String>("output_file").expect("failed to get output_file").white();
-    let threads: ColoredString = matches.get_one::<String>("threads").expect("failed to get threads").white();
+    let target_url_unformatted: String = matches.get_one::<String>("target_url").expect("failed to get target").to_string();
+    let input_file_unformatted: String = matches.get_one::<String>("input_file").expect("failed to get input_file").to_string();
+    let output_file_unformatted: String = matches.get_one::<String>("output_file").expect("failed to get output_file").to_string();
+    let threads_unformatted: String = matches.get_one::<String>("threads").expect("failed to get threads").to_string();
     
-    // BROKEN
-    // if Path::new(&input_file.to_string()).is_file() {
-    //     log::info!("{}", format!("input_file: '{}' argument is valid", &input_file.to_string()));
-    //     // input_file = input_file.green();
-    // } else {
-    //     log::error!("{}", format!("input_file: '{}' argument is invalid", &input_file.to_string()));
-    //     // input_file = input_file.red();
-    // }
+    let target_url: ColoredString;
+    let input_file: ColoredString;
+    let output_file: ColoredString;
+    let threads: ColoredString;
+    
+    // validate url with simple contains check
+    if target_url_unformatted.contains("http://") || target_url_unformatted.contains("https://") {
+        log::info!("{}", format!("target_url: '{}' argument is a valid url", &target_url_unformatted.to_string()));
+        target_url = display(target_url_unformatted).green();
+    } else {
+        log::error!("{}", format!("target_url: '{}' argument is not a valid url", &target_url_unformatted.to_string()));
+        target_url = display(target_url_unformatted).red();
+    }
+
+    // check if path is valid w/ std::fs
+    if Path::new(&input_file_unformatted.to_string()).is_file() {
+        log::info!("{}", format!("input_file: '{}' argument is a valid path", &input_file_unformatted.to_string()));
+        input_file = display(input_file_unformatted).green();
+    } else {
+        log::error!("{}", format!("input_file: '{}' argument is not a valid path", &input_file_unformatted.to_string()));
+        input_file = display(input_file_unformatted).red();
+    }
+
+    // ???????: add dialog to ask user if he wants to create a new file (extra argument?)
+    // acknowledge?
+
+    // check if path is valid w/ std::fs
+    if Path::new(&output_file_unformatted.to_string()).is_file() {
+        log::info!("{}", format!("output_file: '{}' argument is a valid path", &output_file_unformatted.to_string()));
+        output_file = display(output_file_unformatted).green();
+    } else {
+        log::error!("{}", format!("output_file: '{}' argument is not a valid path", &output_file_unformatted.to_string()));
+        output_file = display(output_file_unformatted).red();
+    }
+
+    // check if threads are valid by checking if the string only contains alphanumeric characters
+    if threads_unformatted.chars().all(char::is_alphanumeric){
+        log::info!("{}", format!("threads: '{}' argument is a alphanumeric", &threads_unformatted.to_string()));
+        threads = display(threads_unformatted).green();
+    } else {
+        log::error!("{}", format!("threads: '{}' argument is not alphanumeric", &threads_unformatted.to_string()));
+        threads = display(threads_unformatted).red();
+    }
+
 
     let cfgtxt = format!("
   .-- [ Loaded Configuration ] ------------------------------------.
@@ -155,8 +201,6 @@ async fn main() {
     threads, rep_print(' ', 45 - threads.chars().count()),
     );
 
-    
-    
     // print configuration
     println!("{}\n", cfgtxt);
 
