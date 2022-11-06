@@ -1,7 +1,8 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] why add this in the first place???
 
 use std::io;
 use std::io::{Stdin, BufRead};
+use std::process::exit;
 // use clap::error::ErrorFormatter;
 use colored::*;
 use clap::{Command, Arg};
@@ -37,8 +38,17 @@ fn rep_print(input: char, length: usize) -> String {
 }
 
 // to avoid: thread 'main' panicked at 'attempt to subtract with overflow'
-fn display(input: String) -> String {
+fn display(input_raw: String) -> String {
     let mut cnstrcd = String::new();
+    let mut input = String::new();
+
+    // prettify, no other reason
+    if input_raw.contains("http://") || input_raw.contains("https://") {
+        let vec: Vec<&str> = input_raw.split("//").collect();
+        input = vec[1].to_string();
+    } else {
+        input = input_raw;
+    }
 
     for i in 0..25 {
         if input.chars().nth(i) != None {
@@ -97,11 +107,11 @@ async fn main() {
         .about(description)
         .arg(
             Arg::new("target_url")
-                .short('t')
-                .long("target")
+                .short('u')
+                .long("url")
                 .value_name("target_url")
                 .help("Target ip or url for the timeout tests")
-                .default_value("https://ifconfig.me")
+                .default_value("https://www.google.com/robots.txt")
         )
         .arg(
             Arg::new("input_file")
@@ -109,6 +119,7 @@ async fn main() {
                 .long("input")
                 .value_name("input_file")
                 .help("File containing your input list")
+                .default_value("NOT_PROVIDED") // SHITTY SOLUTION ; ADD BETTER RESULT HANDLING INSTEAD
         )
         .arg(
             Arg::new("output_file")
@@ -120,7 +131,7 @@ async fn main() {
         )
         .arg(
             Arg::new("threads")
-                .short('T')
+                .short('t')
                 .long("threads")
                 .value_name("threads")
                 .help("Number of threads to spawn")
@@ -135,13 +146,17 @@ async fn main() {
         // )
         .get_matches();
 
+
     // TODO: more efficient rewrite?
 
+    let mut errors: usize = 0;
+
     // validate required arguments for their existence, if not panic
-    let target_url_unformatted: String = matches.get_one::<String>("target_url").expect("failed to get target").to_string();
-    let input_file_unformatted: String = matches.get_one::<String>("input_file").expect("failed to get input_file").to_string();
-    let output_file_unformatted: String = matches.get_one::<String>("output_file").expect("failed to get output_file").to_string();
-    let threads_unformatted: String = matches.get_one::<String>("threads").expect("failed to get threads").to_string();
+    // let target_url_raw1: String = match matches.get_one::<String>("target_url").unwrap() { Ok(target_url) => target_url, Err(error) => errors = errors + 1, };
+    let target_url_raw: String = matches.get_one::<String>("target_url").expect("failed to get target").to_string();
+    let input_file_raw: String = matches.get_one::<String>("input_file").expect("failed to get input_file").to_string();
+    let output_file_raw: String = matches.get_one::<String>("output_file").expect("failed to get output_file").to_string();
+    let threads_raw: String = matches.get_one::<String>("threads").expect("failed to get threads").to_string();
     
     let target_url: ColoredString;
     let input_file: ColoredString;
@@ -149,42 +164,45 @@ async fn main() {
     let threads: ColoredString;
     
     // validate url with simple contains check
-    if target_url_unformatted.contains("http://") || target_url_unformatted.contains("https://") {
-        log::info!("{}", format!("target_url: '{}' argument is a valid url", &target_url_unformatted.to_string()));
-        target_url = display(target_url_unformatted).green();
+    if target_url_raw.contains("http://") || target_url_raw.contains("https://") {
+        log::info!("{}", format!("target_url: '{}' argument is a valid url", &target_url_raw.to_string()));
+        target_url = display(target_url_raw).green();
     } else {
-        log::error!("{}", format!("target_url: '{}' argument is not a valid url", &target_url_unformatted.to_string()));
-        target_url = display(target_url_unformatted).red();
+        log::error!("{}", format!("target_url: '{}' argument is not a valid url", &target_url_raw.to_string()));
+        target_url = display(target_url_raw).red();
+        errors = errors + 1;
     }
 
-    // check if path is valid w/ std::fs
-    if Path::new(&input_file_unformatted.to_string()).is_file() {
-        log::info!("{}", format!("input_file: '{}' argument is a valid path", &input_file_unformatted.to_string()));
-        input_file = display(input_file_unformatted).green();
+    // check if input path is valid w/ std::fs
+    if Path::new(&input_file_raw.to_string()).is_file() {
+        log::info!("{}", format!("input_file: '{}' argument is an existing valid path", &input_file_raw.to_string()));
+        input_file = display(input_file_raw).green();
     } else {
-        log::error!("{}", format!("input_file: '{}' argument is not a valid path", &input_file_unformatted.to_string()));
-        input_file = display(input_file_unformatted).red();
+        log::error!("{}", format!("input_file: '{}' argument is not an existing valid path", &input_file_raw.to_string()));
+        input_file = display(input_file_raw).red();
+        errors = errors + 1;
     }
 
     // ???????: add dialog to ask user if he wants to create a new file (extra argument?)
     // acknowledge?
 
-    // check if path is valid w/ std::fs
-    if Path::new(&output_file_unformatted.to_string()).is_file() {
-        log::info!("{}", format!("output_file: '{}' argument is a valid path", &output_file_unformatted.to_string()));
-        output_file = display(output_file_unformatted).green();
+    // check if output path is valid w/ std::fs
+    if Path::new(&output_file_raw.to_string()).is_file() {
+        log::info!("{}", format!("output_file: '{}' argument is an existing valid path", &output_file_raw.to_string()));
+        output_file = display(output_file_raw).green();
     } else {
-        log::error!("{}", format!("output_file: '{}' argument is not a valid path", &output_file_unformatted.to_string()));
-        output_file = display(output_file_unformatted).red();
+        log::error!("{}", format!("output_file: '{}' argument is not an existing valid path", &output_file_raw.to_string()));
+        output_file = format!("{} {}", display(output_file_raw), "(will be created)").green();
     }
 
     // check if threads are valid by checking if the string only contains alphanumeric characters
-    if threads_unformatted.chars().all(char::is_alphanumeric){
-        log::info!("{}", format!("threads: '{}' argument is a alphanumeric", &threads_unformatted.to_string()));
-        threads = display(threads_unformatted).green();
+    if threads_raw.chars().all(char::is_alphanumeric){
+        log::info!("{}", format!("threads: '{}' argument is a alphanumeric", &threads_raw.to_string()));
+        threads = display(threads_raw).green();
     } else {
-        log::error!("{}", format!("threads: '{}' argument is not alphanumeric", &threads_unformatted.to_string()));
-        threads = display(threads_unformatted).red();
+        log::error!("{}", format!("threads: '{}' argument is not alphanumeric", &threads_raw.to_string()));
+        threads = display(threads_raw).red();
+        errors = errors + 1;
     }
 
 
@@ -204,7 +222,16 @@ async fn main() {
     // print configuration
     println!("{}\n", cfgtxt);
 
-    println!("{}", format!("  [{}] Press [{}] to continue", "+".bright_blue(), "ENTER".white().bold()).white());
+    if errors >= 1 {
+        println!("{}\n", format!("  [{}] Configuration is misconfigured ({})", "ERROR".red(), errors.to_string().bold()).white());
+
+        println!("{}", format!("  [{}] Press [{}] to exit", "+".bright_blue(), "ENTER".bold()).white());
+        // wait for newline input
+        io::stdin().discard_until_newline().unwrap();
+        exit(0);
+    }
+
+    println!("{}", format!("  [{}] Press [{}] to continue", "+".bright_blue(), "ENTER".bold()).white());
 
     // wait for newline input
     io::stdin().discard_until_newline().unwrap();
